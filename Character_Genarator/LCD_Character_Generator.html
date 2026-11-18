@@ -1,0 +1,336 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LCD 5x8 Character Generator</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 20px;
+    background: #101820;
+    color: #eaf2f5;
+    font-family: Arial, sans-serif;
+}
+
+.container {
+    max-width: 650px;
+    margin: auto;
+    background: #1c2933;
+    padding: 22px;
+    border-radius: 14px;
+}
+
+h2 {
+    text-align: center;
+    color: #4de0b5;
+}
+
+.subtitle {
+    text-align: center;
+    color: #aab9c3;
+    font-size: 14px;
+}
+
+.editor {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin: 25px 0;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(5, 42px);
+    grid-template-rows: repeat(8, 42px);
+    gap: 5px;
+    padding: 12px;
+    background: #0c141b;
+    border-radius: 10px;
+}
+
+.pixel {
+    width: 42px;
+    height: 42px;
+    background: #354650;
+    border: 1px solid #52636c;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.pixel.active {
+    background: #43e6b0;
+    border-color: #43e6b0;
+    box-shadow: 0 0 8px #43e6b080;
+}
+
+.preview-box {
+    text-align: center;
+}
+
+.preview {
+    display: grid;
+    grid-template-columns: repeat(5, 15px);
+    grid-template-rows: repeat(8, 15px);
+    gap: 3px;
+    background: #050a0d;
+    padding: 12px;
+    border: 3px solid #4de0b5;
+    border-radius: 8px;
+}
+
+.preview-pixel {
+    width: 15px;
+    height: 15px;
+    background: #273c38;
+}
+
+.preview-pixel.active {
+    background: #65ffae;
+    box-shadow: 0 0 5px #65ffae;
+}
+
+.buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+    justify-content: center;
+    margin: 20px 0;
+}
+
+button {
+    background: #32c99a;
+    color: #10251f;
+    border: none;
+    border-radius: 6px;
+    padding: 11px 15px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+button.secondary {
+    background: #405563;
+    color: white;
+}
+
+button:hover {
+    opacity: 0.8;
+}
+
+h3 {
+    color: #4de0b5;
+}
+
+.output {
+    background: #090f14;
+    padding: 15px;
+    border-radius: 8px;
+    overflow-x: auto;
+    white-space: pre;
+    color: #8fffc7;
+    font-family: Consolas, monospace;
+    line-height: 1.7;
+    font-size: 14px;
+}
+
+.info {
+    color: #9aabb5;
+    font-size: 13px;
+    text-align: center;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h2>LCD 16x2 Character Generator</h2>
+<p class="subtitle">Create your own 5x8 custom character</p>
+
+<div class="editor">
+
+    <div>
+        <p>SELECT PIXELS</p>
+        <div class="grid" id="grid"></div>
+    </div>
+
+    <div class="preview-box">
+        <p>LIVE PREVIEW</p>
+        <div class="preview" id="preview"></div>
+    </div>
+
+</div>
+
+<div class="buttons">
+    <button onclick="clearGrid()">CLEAR</button>
+    <button onclick="invertGrid()" class="secondary">INVERT</button>
+    <button onclick="fillGrid()" class="secondary">FILL</button>
+</div>
+
+<h3>C Array Output</h3>
+
+<pre class="output" id="output"></pre>
+
+<div class="buttons">
+    <button onclick="copyCode()">COPY C CODE</button>
+</div>
+
+<p class="info">
+    Each row contains 5 bits (D4 to D0).<br>
+    ON = 1 | OFF = 0
+</p>
+
+</div>
+
+<script>
+
+const ROWS = 8;
+const COLS = 5;
+
+let pixels = Array.from(
+    {length: ROWS},
+    () => Array(COLS).fill(0)
+);
+
+const grid = document.getElementById("grid");
+const preview = document.getElementById("preview");
+
+// Create pixel editor
+for(let r = 0; r < ROWS; r++) {
+
+    for(let c = 0; c < COLS; c++) {
+
+        let pixel = document.createElement("div");
+
+        pixel.className = "pixel";
+
+        pixel.onclick = function() {
+
+            pixels[r][c] = pixels[r][c] ? 0 : 1;
+
+            update();
+        };
+
+        grid.appendChild(pixel);
+    }
+}
+
+// Create preview pixels
+for(let i = 0; i < 40; i++) {
+
+    let pixel = document.createElement("div");
+
+    pixel.className = "preview-pixel";
+
+    preview.appendChild(pixel);
+}
+
+// Generate hexadecimal array
+function getArray() {
+
+    return pixels.map(row => {
+
+        let value = 0;
+
+        for(let c = 0; c < COLS; c++) {
+
+            value |= row[c] << (4 - c);
+        }
+
+        return value;
+    });
+}
+
+// Update grid, preview and output
+function update() {
+
+    let editorPixels = grid.children;
+    let previewPixels = preview.children;
+
+    for(let r = 0; r < ROWS; r++) {
+
+        for(let c = 0; c < COLS; c++) {
+
+            let index = r * COLS + c;
+
+            editorPixels[index].classList.toggle(
+                "active", pixels[r][c] === 1
+            );
+
+            previewPixels[index].classList.toggle(
+                "active", pixels[r][c] === 1
+            );
+        }
+    }
+
+    let values = getArray();
+
+    let code = "unsigned char customChar[8] = {\n";
+
+    code += values.map(v =>
+        "    0x" + v.toString(16).toUpperCase().padStart(2, "0")
+    ).join(",\n");
+
+    code += "\n};";
+
+    document.getElementById("output").textContent = code;
+}
+
+// Clear all pixels
+function clearGrid() {
+
+    pixels = Array.from(
+        {length: ROWS},
+        () => Array(COLS).fill(0)
+    );
+
+    update();
+}
+
+// Invert all pixels
+function invertGrid() {
+
+    pixels = pixels.map(row =>
+        row.map(value => value ? 0 : 1)
+    );
+
+    update();
+}
+
+// Fill all pixels
+function fillGrid() {
+
+    pixels = Array.from(
+        {length: ROWS},
+        () => Array(COLS).fill(1)
+    );
+
+    update();
+}
+
+// Copy C code
+function copyCode() {
+
+    let code = document.getElementById("output").textContent;
+
+    navigator.clipboard.writeText(code)
+        .then(() => alert("C Array Copied!"))
+        .catch(() => alert("Please copy the code manually."));
+}
+
+// Initial update
+update();
+
+</script>
+
+</body>
+</html>
