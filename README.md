@@ -1,42 +1,53 @@
 🚀 STM32F401RBT6 – 16×2 LCD Driver Using Bare-Metal Embedded C
-
 From Registers to Pixels!
 
-A hands-on embedded systems project focused on interfacing a 16×2 character LCD with the STM32F401RBT6 microcontroller using 4-bit Parallel Communication through GPIO.
+A bare-metal embedded systems project demonstrating how to interface an HD44780-compatible 16×2 character LCD with the STM32F401RBT6 microcontroller using a 4-bit parallel communication interface.
 
-Instead of relying on an I2C LCD module or high-level HAL libraries, this project explores how LCD communication works at the register level by developing a custom LCD device driver using Bare-Metal Embedded C.
+This project focuses on developing a custom LCD driver through direct memory-mapped register access, without depending on high-level STM32 HAL libraries or an I2C LCD interface.
 
-The LCD displays a personal introduction with multiple greeting sequences and custom characters.
+The goal is to understand how microcontrollers communicate with external peripherals at the hardware level while building a reusable LCD driver using Embedded C.
 
 📌 Project Overview
 
-Hey LinkedIn! What's up? 👋
-
 This project is part of my journey into Firmware and Embedded Systems Development.
 
-The objective was not just to display text on an LCD, but to understand the underlying communication mechanism between a microcontroller and an external peripheral.
+Rather than simply displaying characters on an LCD, I wanted to understand what happens behind the scenes when a microcontroller communicates with an external display.
 
-I configured GPIO registers, implemented LCD command and data transmission, explored 4-bit parallel communication, and created custom characters using the LCD's CGRAM.
+The implementation covers:
+
+Direct STM32 peripheral register configuration.
+GPIO initialization and pin control.
+LCD initialization in 4-bit mode.
+Command and data transmission.
+Upper and lower nibble handling.
+Cursor positioning and string display.
+Custom character generation using CGRAM.
+Millisecond delays using the SysTick timer.
+
+The LCD displays a sequence of personal introduction messages, along with support for custom characters.
 
 🛠️ Hardware Requirements
 Component	Specification
 Microcontroller	STM32F401RBT6
 Display	16×2 Character LCD
-LCD Controller	HD44780 compatible
-Communication	4-bit Parallel
+LCD Controller	HD44780 Compatible
+Communication Interface	4-bit Parallel
 GPIO Port	GPIOB
 Programming Language	Embedded C
 💻 Software & Development Environment
-Tool	Purpose
-Visual Studio Code	Code editing
+Tool / Technology	Purpose
+Visual Studio Code	Source code editing
 Keil MDK 6	Build and development environment
-CMSIS	Cortex-M and device support
+CMSIS	Cortex-M and STM32 device support
 Git	Version control
 GitHub	Source code hosting
 🔌 Hardware Connections
 
-The LCD is interfaced with STM32 GPIOB using four data pins and three control pins.
+The LCD is connected to the STM32F401RBT6 through GPIOB.
 
+Four GPIO pins are used for data transmission, while three additional pins handle LCD control operations.
+
+GPIO Pin Configuration
 LCD Pin	STM32 Pin	Function
 D4	PB0	Data bit 4
 D5	PB1	Data bit 5
@@ -45,141 +56,152 @@ D7	PB3	Data bit 7
 RS	PB4	Register Select
 RW	PB5	Read / Write
 EN	PB8	Enable
-
-Additional LCD connections:
-
+Additional Connections
 VSS → GND
-VDD → Supply voltage supported by the LCD module
+VDD → LCD-supported supply voltage
 V0 → Potentiometer for contrast adjustment
 
-Communication mode: 4-bit Parallel Interface.
+Communication: 4-bit Parallel Interface.
 
 ⚙️ Features Implemented
-Direct memory-mapped peripheral register access.
-RCC clock enable for GPIOB.
-GPIO output configuration using MODER.
+STM32 Peripheral Configuration
+Direct memory-mapped register programming.
+RCC peripheral clock enable for GPIOB.
+GPIO mode configuration using MODER.
 Output type configuration using OTYPER.
-GPIO speed configuration using OSPEEDR.
-Pull-up / Pull-down configuration using PUPDR.
+Output speed configuration using OSPEEDR.
+Pull-up and pull-down configuration using PUPDR.
+LCD Driver Functionality
 LCD initialization in 4-bit mode.
-LCD command and data transmission.
-Upper and lower nibble transmission.
+LCD command transmission.
+LCD data transmission.
+Upper and lower nibble processing.
+Enable pulse generation.
 Cursor positioning using row and column.
 String display functionality.
 Custom character generation using CGRAM.
-SysTick-based millisecond delay.
-Multiple LCD greeting and introduction sequences.
+Timing Implementation
+SysTick timer configuration.
+Millisecond-based delay implementation.
+Timing control for LCD operations.
 🧩 LCD Driver Architecture
 
-The project is organized into reusable modules.
+The project follows a modular structure to separate peripheral definitions, LCD operations, timing functionality, and application logic.
 
 Module	Responsibility
 Raayan_Mini.h	Peripheral register definitions and memory addresses
-Lcd.h	LCD commands, pin definitions and function declarations
-Lcd.c	LCD initialization, commands, data and display operations
-SysTick_Delay.h	Delay function declaration
-SysTick_Delay.c	SysTick-based millisecond delay
+Lcd.h	LCD commands, pin definitions, and function declarations
+Lcd.c	LCD initialization, command/data transmission, and display operations
+SysTick_Delay.h	Delay function declarations
+SysTick_Delay.c	SysTick-based millisecond delay implementation
 main.c	Application logic and LCD display sequences
-🔄 LCD Communication – 4-Bit Parallel Mode
 
-The LCD operates using a 4-bit data interface.
+This modular approach makes the driver easier to understand, maintain, and extend.
 
-Each 8-bit command or character is transmitted in two stages:
+🔄 Understanding LCD Communication – 4-Bit Mode
 
-Upper nibble (D7–D4).
-Lower nibble (D7–D4).
+The LCD uses a 4-bit parallel interface, meaning that only four data lines (D4–D7) are required to communicate with the controller.
 
-The Enable pin is pulsed to latch each nibble into the LCD controller.
+Since LCD commands and character data are 8 bits wide, each byte is transmitted in two stages:
 
-This approach reduces the number of GPIO pins required compared with an 8-bit interface.
+1. Upper Nibble Transmission
 
-🎨 Custom Character Generation
+The upper four bits (D7–D4) are placed on the LCD data pins.
 
-One interesting feature of this project is generating custom characters using the LCD's Character Generator RAM (CGRAM).
+2. Lower Nibble Transmission
 
-An HD44780-compatible LCD supports up to eight user-defined characters in 5×8 dot mode.
+The lower four bits (D3–D0) are transmitted using the same four data pins.
 
-Custom characters are created using 8-byte pixel patterns.
+An Enable (EN) pulse is generated after each nibble to latch the data into the LCD controller.
 
-Planned character designs include:
+This approach reduces GPIO pin requirements compared with an 8-bit parallel interface.
 
-CGRAM Location	Character	Usage
+🎨 Custom Character Generation – CGRAM
+
+One of the interesting features of this project is the implementation of custom characters using the LCD's Character Generator RAM (CGRAM).
+
+An HD44780-compatible LCD supports up to eight custom characters in 5×8 dot mode.
+
+Each character is defined using an 8-byte pattern, with each byte representing one row of the character bitmap.
+
+Custom Character Mapping
+CGRAM Address	Character	Purpose
 0	Smiley	Greeting
 1	Heart	Introduction
 2	Arrow	Learning journey
 3	Star	Technical interests
-📺 LCD Display Sequence
 
-The LCD continuously displays a series of introduction messages.
+These characters are generated using custom pixel patterns and displayed through their corresponding CGRAM character codes.
 
-01 – Greeting
+Note: Custom LCD characters use CGRAM character codes rather than standard Unicode symbols.
 
+📺 LCD Display Sequences
+
+The LCD continuously cycles through a collection of personal introduction messages.
+
+01. Greeting
 text
 YO LINKEDIN!
 WHAT'S UP? :D
 
-
-02 – Introduction
-
+02. Introduction
 text
 IT'S ANANDA!
 NICE TO MEET U
 
-
-03 – Learning Journey
-
+03. Learning Journey
 text
 NEWBIE MODE ON
 LEVELING UP!
 
-
-04 – Technical Interests
-
+04. Technical Interests
 text
 FIRMWARE NERD
 EMBEDDED LIFE
 
-
-05 – Technical Skills
-
+05. Technical Skills
 text
 C IS MY VIBE
 DRIVER LOADING
 
-
-06 – Developer Mindset
-
+06. Developer Mindset
 text
 NO CAP, JUST
 CODE & LEARN!
 
 
-Custom characters are represented by CGRAM character codes, not standard Unicode symbols.
+Each sequence demonstrates LCD text handling, cursor positioning, and display control.
 
 🧠 Key Learning Outcomes
 
-Through this project, I explored:
+Working on this project helped me develop a deeper understanding of:
 
-Memory-mapped register programming.
+Memory-mapped peripheral register programming.
 STM32 GPIO peripheral configuration.
-RCC peripheral clock management.
-LCD 4-bit parallel communication.
+RCC clock management.
+Register-level hardware control.
+4-bit parallel communication.
 LCD command and data handling.
 CGRAM-based custom character generation.
-SysTick timer and delay implementation.
+SysTick timer configuration and delays.
 Modular Embedded C driver development.
-Reading and understanding technical documentation.
+Reading and interpreting microcontroller datasheets and technical reference manuals.
 
-An important part of this project was exploring the differences between parallel and serial communication and understanding their respective advantages and trade-offs.
+One important takeaway was understanding the differences between parallel and serial communication, including their respective advantages, limitations, and hardware requirements.
 
 🚀 Future Improvements
-Implement LCD display scrolling.
+
+There is still plenty of room to extend this project.
+
+Planned improvements include:
+
+Implement LCD text scrolling.
 Add animated custom characters.
 Implement button-controlled display navigation.
 Improve timing using interrupt-based SysTick.
 Develop reusable GPIO drivers.
-Explore UART, SPI and I2C peripheral drivers.
-Improve LCD driver portability.
+Explore UART, SPI, and I2C peripheral drivers.
+Improve LCD driver portability across STM32 microcontrollers.
 📂 Repository Structure
 text
 Parallel_GPIO_Com/
@@ -220,16 +242,16 @@ Aspiring Firmware / Embedded Systems Engineer.
 
 Currently exploring:
 
-Embedded C
+Embedded C Programming
 STM32 Microcontrollers
-Bare-Metal Programming
+Bare-Metal Development
 GPIO and Peripheral Drivers
 Microcontroller Architecture
 Low-Level Device Driver Development
 🤝 Connect With Me
 
-LinkedIn – DUNNA ANANDA SIDHVILAS
+LinkedIn: DUNNA ANANDA SIDHVILAS
 
-BUILD. BREAK. DEBUG. REPEAT. 🔧
+🔧 BUILD. BREAK. DEBUG. REPEAT.
 
 Learning one register at a time. Building one project at a time.
